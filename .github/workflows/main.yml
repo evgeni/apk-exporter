@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - devel
+    tags:
+      - '**'
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref_name }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test on ${{ matrix.container }}
+    runs-on: ubuntu-24.04
+    # We're not using "container: ${{ matrix.container }}" here as this breaks running actions/* on OpenWRT
+    # The actions need NodeJS and the binary GH injects doesn't work with OpenWRT's libc
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - ghcr.io/openwrt/rootfs:x86-64-openwrt-25.12
+          - alpine:latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: podman run -ti --rm -v $(pwd):/app ${{ matrix.container }} sh /app/test/test.sh
